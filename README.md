@@ -1,2 +1,8 @@
-# codecrafters-interpreter-python
-Build your own Interpreter (Python)
+1. # Build your own Interpreter (Python)
+   https://app.codecrafters.io/courses/interpreter/overview
+
+   
+
+   - ✅ Scanning (15/15)
+   - ✅ Parsing (10/10)
+
