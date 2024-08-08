@@ -1,54 +1,4 @@
-from enum import Enum
-from typing import NamedTuple
-
-TokenType = Enum('TokenType', [
-    # Single-character tokens.
-    'LEFT_PAREN', 'RIGHT_PAREN', 'LEFT_BRACE', 'RIGHT_BRACE',
-    'COMMA', 'DOT', 'MINUS', 'PLUS', 'SEMICOLON', 'SLASH', 'STAR',
-
-    # One or two character tokens.
-    'BANG', 'BANG_EQUAL',
-    'EQUAL', 'EQUAL_EQUAL',
-    'GREATER', 'GREATER_EQUAL',
-    'LESS', 'LESS_EQUAL',
-
-    # Literals.
-    'IDENTIFIER', 'NUMBER', 'STRING', 
-
-    # Keywords.
-    'AND', 'CLASS', 'ELSE', 'FALSE', 'FUN', 'FOR', 'IF', 'NIL', 'OR',
-    'PRINT', 'RETURN', 'SUPER', 'THIS', 'TRUE', 'VAR', 'WHILE',
-
-    'EOF'
-])
-
-KEYWORDS = {
-    'and':    TokenType.AND,
-    'class':  TokenType.CLASS,
-    'else':   TokenType.ELSE,
-    'false':  TokenType.FALSE,
-    'for':    TokenType.FOR,
-    'fun':    TokenType.FUN,
-    'if':     TokenType.IF,
-    'nil':    TokenType.NIL,
-    'or':     TokenType.OR,
-    'print':  TokenType.PRINT,
-    'return': TokenType.RETURN,
-    'super':  TokenType.SUPER,
-    'this':   TokenType.THIS,
-    'true':   TokenType.TRUE,
-    'var':    TokenType.VAR,
-    'while':  TokenType.WHILE
-}
-
-class Token(NamedTuple):
-    type: TokenType
-    lexeme: str
-    literal: object
-    line: int
-
-    def __repr__(self):
-        return f'{self.type.name} {self.lexeme} {"null" if self.literal is None else self.literal}'
+from lox.types import *
 
 
 class Scanner:
@@ -63,22 +13,22 @@ class Scanner:
     def scan_tokens(self) -> list[Token]:
         while not self._is_at_end():
             self._scan_token()
-        self._tokens += Token(TokenType.EOF, '', None, self._line),
+        self._tokens += (Token(TokenType.EOF, '', None, self._line),)
         return self._tokens
 
     def _add_token(self, type: TokenType, literal=None):
         text = self._source[self._start : self._current]
-        self._tokens += Token(type, text, literal, self._line),
-    
+        self._tokens += (Token(type, text, literal, self._line),)
+
     def _advance(self) -> str:
         c = self._source[self._current]
         self._current += 1
         return c
-    
+
     def _error_char(self):
         char = self._source[self._start : self._current]
         self._lox.error_line(self._line, 'Unexpected character: ' + char)
-    
+
     def _identifier(self):
         while (c := self._peek()).isalnum() or c == '_':
             self._advance()
@@ -86,35 +36,39 @@ class Scanner:
         text = self._source[self._start : self._current]
         type = KEYWORDS.get(text) or TokenType.IDENTIFIER
         self._add_token(type)
-    
-    def _is_at_end(self) -> bool: 
+
+    def _is_at_end(self) -> bool:
         return self._current >= len(self._source)
-    
+
     def _match(self, expected: str) -> bool:
-        if self._is_at_end() or (self._source[self._current] != expected): 
+        if self._is_at_end() or (self._source[self._current] != expected):
             return False
-        self._current += 1;
+        self._current += 1
         return True
-    
+
     def _number(self):
-        while self._peek().isdigit(): self._advance()
-        
+        while self._peek().isdigit():
+            self._advance()
+
         if self._peek() == '.' and self._peek_next().isdigit():
-            self._advance() # Consume the "."
-            while self._peek().isdigit(): self._advance()
+            self._advance()  # Consume the "."
+            while self._peek().isdigit():
+                self._advance()
 
         literal = self._source[self._start : self._current]
         self._add_token(TokenType.NUMBER, float(literal))
-    
+
     def _peek(self) -> str:
         return '\0' if self._is_at_end() else self._source[self._current]
-    
+
     def _peek_next(self) -> str:
-        if self._current + 1 >= len(self._source): return '\0'
+        if self._current + 1 >= len(self._source):
+            return '\0'
         return self._source[self._current + 1]
 
     def _scan_token(self):
         self._start = self._current
+        # fmt: off
         match c := self._advance():
             case '(' : self._add_token(TokenType.LEFT_PAREN)
             case ')' : self._add_token(TokenType.RIGHT_PAREN)
@@ -143,6 +97,7 @@ class Scanner:
             case c if c.isalpha() or c == '_': self._identifier()
 
             case _   : self._error_char()
+        # fmt: on
 
     def _slash(self):
         if self._match('/'):
@@ -153,12 +108,13 @@ class Scanner:
 
     def _string(self):
         while self._peek() != '"' and not self._is_at_end():
-            if self._peek() == '\n': self._line += 1
+            if self._peek() == '\n':
+                self._line += 1
             self._advance()
 
         if self._is_at_end():
             return self._lox.error_line(self._line, 'Unterminated string.')
-        
-        self._advance() # The closing ".
+
+        self._advance()  # The closing ".
         value = self._source[self._start + 1 : self._current - 1]
         self._add_token(TokenType.STRING, value)
